@@ -172,7 +172,9 @@ typedef int (*curl_xferinfo_callback)(void *clientp,
                                       curl_off_t ultotal,
                                       curl_off_t ulnow);
 
-/* This is the CURLOPT_SSL_VERIFY_FUNCTION callback prototype. */
+/* This is the CURLOPT_SSL_VERIFY_FUNCTION callback prototype. A return code
+ * of '0' will be interpreted as success; everything else will make the
+ * verification fail. */
 typedef int (*curl_ssl_verify_callback)(unsigned int depth,
 					void const *der,
 					size_t der_len,
