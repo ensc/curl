@@ -1296,6 +1296,62 @@ static CURLcode nss_init_sslver(SSLVersionRange *sslver,
   return CURLE_SSL_CONNECT_ERROR;
 }
 
+static bool check_chain_item(struct SessionHandle *data,
+			     struct CERTCertificateStr *cert,
+			     unsigned int depth)
+{
+  bool rc;
+
+  /* the upper part of the function; check for errors and abort condition and
+     perform recursive function call */
+
+  if (depth > CURL_MAX_SSL_CHAIN_DEPTH) {
+    failf(data, "maximum chain depth exceeded");
+    rc = false;
+  } else if (!cert || cert->isRoot) {
+    rc = true;
+  } else {
+    struct CERTCertificateStr *issuer;
+
+    issuer = CERT_FindCertIssuer(cert, PR_Now(), certUsageSSLCA);
+    rc = check_chain_item(data, issuer, depth + 1);
+    CERT_DestroyCertificate(issuer);
+  }
+
+  /* the lower part of the function; execute the callback function */
+
+  if (rc && cert != NULL) {
+    rc = data->set.ssl_verify_fn(depth, cert->derCert.data, cert->derCert.len,
+				 data->set.ssl_verify_data) == 0;
+    if (!rc)
+      failf(data, "failed to verify certificate at depth %u", depth);
+  }
+
+  return rc;
+}
+
+static bool check_chain(struct SessionHandle *data, PRFileDesc *fd)
+{
+  struct CERTCertificateStr	*cert;
+  bool				rc;
+
+  if (!data->set.ssl_verify_fn)
+    /* nothing todo */
+    return true;
+
+  cert = SSL_PeerCertificate(fd);
+  if (!cert) {
+    failf(data, "failed to get server certificate");
+    return false;
+  }
+
+  rc = check_chain_item(data, cert, 0);
+
+  CERT_DestroyCertificate(cert);
+
+  return rc;
+}
+
 CURLcode Curl_nss_connect(struct connectdata *conn, int sockindex)
 {
   PRErrorCode err = 0;
@@ -1581,6 +1637,11 @@ CURLcode Curl_nss_connect(struct connectdata *conn, int sockindex)
     else {
       infof(data, "SSL certificate issuer check ok\n");
     }
+  }
+
+  if (!check_chain(data, connssl->handle)) {
+    curlerr = CURLE_SSL_CACERT;
+    goto error;
   }
 
   return CURLE_OK;

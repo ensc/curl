@@ -2497,7 +2497,7 @@ CURLcode Curl_setopt(struct SessionHandle *data, CURLoption option,
     data->set.ssl_enable_alpn = (0 != va_arg(param, long))?TRUE:FALSE;
     break;
 
-#if 0
+#if defined(USE_NSS)
   case CURLOPT_SSL_VERIFY_FUNCTION:
     data->set.ssl_verify_fn = va_arg(param, curl_ssl_verify_callback);
     break;
