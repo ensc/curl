@@ -1592,6 +1592,9 @@ struct UserDefined {
   bool ssl_enable_alpn; /* TLS ALPN extension? */
 
   long expect_100_timeout; /* in milliseconds */
+
+  curl_ssl_verify_callback ssl_verify_fn; /* SSL chain verification callback */
+  void *ssl_verify_data;  /* private data for SSL chain verification */
 };
 
 struct Names {

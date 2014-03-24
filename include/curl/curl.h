@@ -172,6 +172,12 @@ typedef int (*curl_xferinfo_callback)(void *clientp,
                                       curl_off_t ultotal,
                                       curl_off_t ulnow);
 
+/* This is the CURLOPT_SSL_VERIFY_FUNCTION callback prototype. */
+typedef int (*curl_ssl_verify_callback)(unsigned int depth,
+					void const *der,
+					size_t der_len,
+					void *priv);
+
 #ifndef CURL_MAX_WRITE_SIZE
   /* Tests have proven that 20K is a very bad buffer size for uploads on
      Windows, while 16K for some odd reason performed a lot better.
@@ -192,6 +198,9 @@ typedef int (*curl_xferinfo_callback)(void *clientp,
 /* This is a magic return code for the write callback that, when returned,
    will signal libcurl to pause receiving on the current transfer. */
 #define CURL_WRITEFUNC_PAUSE 0x10000001
+
+/* Maximum depth when performing SSL CA chain verification */
+#define CURL_MAX_SSL_CHAIN_DEPTH	23
 
 typedef size_t (*curl_write_callback)(char *buffer,
                                       size_t size,
@@ -1580,6 +1589,16 @@ typedef enum {
   /* Time to wait for a response to a HTTP request containing an
    * Expect: 100-continue header before sending the data anyway. */
   CINIT(EXPECT_100_TIMEOUT_MS, LONG, 227),
+
+  /* Callback function which will be called on every item in the ca chain of
+   * the peer's CA chain. This function should be defined as the
+   * curl_ssl_verify_callback prototype. It will be called for each item in
+   * the CA chain; starting with the top level CA and ending with the server
+   * certificate at depth 0. */
+  CINIT(SSL_VERIFY_FUNCTION, FUNCTIONPOINT, 228),
+
+  /* Private data passed to the CURLOPT_SSL_VERIFY_FUNCTION callback. */
+  CINIT(SSL_VERIFY_DATA, OBJECTPOINT, 229),
 
   CURLOPT_LASTENTRY /* the last unused */
 } CURLoption;
